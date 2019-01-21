@@ -1,0 +1,33 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<title>KubeChart</title>
+<script src="//unpkg.com/timelines-chart"></script>
+</head>
+<body>
+<div id="chart"></div>
+
+<script>
+var data = fetch('./data')
+	.then(response => response.json())
+	.then(data => {
+		const el = document.querySelector('#chart');
+
+		const myChart = TimelinesChart();
+		myChart.data(data).zScaleLabel('Pod Status').zQualitative(true).enableAnimations(false).leftMargin(200).rightMargin(350).sortAlpha()(el);
+		window.setInterval(function() {
+			var refresh = fetch('./data')
+				.then(response => response.json())
+				.then(data => {
+					myChart.data(data).refresh().sortAlpha();
+				}
+			)
+		}, 3000);
+});
+
+
+</script>
+</body>
+</html>
