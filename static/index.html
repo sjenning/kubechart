@@ -16,15 +16,7 @@ var data = fetch('./data')
 		const el = document.querySelector('#chart');
 
 		const myChart = TimelinesChart();
-		myChart.data(data).zScaleLabel('Pod Status').zQualitative(true).enableAnimations(false).leftMargin(200).rightMargin(350).sortAlpha()(el);
-		window.setInterval(function() {
-			var refresh = fetch('./data')
-				.then(response => response.json())
-				.then(data => {
-					myChart.data(data).refresh().sortAlpha();
-				}
-			)
-		}, 3000);
+		myChart.data(data).zScaleLabel('Pod Status').zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).sortAlpha().maxHeight(10000)(el);
 });
 
 
