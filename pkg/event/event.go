@@ -48,7 +48,7 @@ func (s *store) Add(namespace, podname, description string) {
 
 type LabelData struct {
 	TimeRange [2]time.Time `json:"timeRange,omitempty"`
-	Val       string       `json:"val,omitempty"`
+	Val       string       `json:"val"`
 }
 
 type GroupData struct {
