@@ -9,7 +9,7 @@ import (
 
 func Run(store event.Store) {
 	http.Handle("/", http.FileServer(http.Dir("./static")))
-	http.HandleFunc("/data", store.JSONHandler)
+	http.HandleFunc("/data.json", store.JSONHandler)
 	glog.Infof("Listening on :3000")
 	http.ListenAndServe(":3000", nil)
 }
