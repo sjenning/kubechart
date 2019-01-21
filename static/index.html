@@ -23,11 +23,23 @@ var data = fetch('./data.json')
 	.then(data => {
 		const el = document.querySelector('#chart');
 
+		var segmentFunc = function(segment){window.open("http://localhost:3000/logs/"+segment.group+"/"+segment.label)}
 		const myChart = TimelinesChart();
 		var ordinalScale = d3.scaleOrdinal()
 			.domain(['CrashLoopBackOff','Error','Pending','ContainerCreating','Running','Completed','Succeeded','Deleted'])
 			.range(['#ba824d','#b65049','#ceba76','#35c5ad','#326ce5','#486889','#486889',"#ffffff"]);
-		myChart.data(data).zScaleLabel('Pod Status').zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).sortAlpha().maxHeight(10000).zColorScale(ordinalScale)(el);
+		myChart.
+			data(data).
+			zScaleLabel('Pod Status').
+			zQualitative(true).
+			enableAnimations(false).
+			leftMargin(320).
+			rightMargin(550).
+			sortAlpha().
+			maxHeight(10000).
+			zColorScale(ordinalScale).
+			onSegmentClick(segmentFunc)
+			(el);
 });
 
 

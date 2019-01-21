@@ -1,5 +1,5 @@
 hash: fb8a846bbd53f22d3cceddd7bb7219ac1be679cf1eab1416f71df43f663ceaa3
-updated: 2019-01-21T14:32:27.681655367-06:00
+updated: 2019-01-21T17:07:53.857441712-06:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -32,6 +32,8 @@ imports:
   - OpenAPIv2
   - compiler
   - extensions
+- name: github.com/gorilla/mux
+  version: 08e7f807d38d6a870193019bb439056118661505
 - name: github.com/gregjones/httpcache
   version: 787624de3eb7bd915c329cba748687a3b22666a6
   subpackages:
