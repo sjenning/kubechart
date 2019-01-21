@@ -21,12 +21,13 @@ func Run(store event.Store, client kubernetes.Interface) {
 		req := client.CoreV1().Pods(namespace).GetLogs(podname, &v1.PodLogOptions{})
 		podLogs, err := req.Stream()
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		defer podLogs.Close()
 		_, err = io.Copy(w, podLogs)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 	glog.Infof("Listening on :3000")
