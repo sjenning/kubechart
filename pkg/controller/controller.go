@@ -156,5 +156,15 @@ func (c *Controller) enqueuePod(obj interface{}) {
 }
 
 func getPodStatus(pod *v1.Pod) string {
-	return string(pod.Status.Phase)
+	status := pod.Status
+	containerStatuses := status.ContainerStatuses
+	for _, cs := range containerStatuses {
+		if cs.State.Waiting != nil {
+			return cs.State.Waiting.Reason
+		}
+		if cs.State.Terminated != nil {
+			return cs.State.Terminated.Reason
+		}
+	}
+	return string(status.Phase)
 }
