@@ -159,10 +159,10 @@ func getPodStatus(pod *v1.Pod) string {
 	status := pod.Status
 	containerStatuses := status.ContainerStatuses
 	for _, cs := range containerStatuses {
-		if cs.State.Waiting != nil {
+		if cs.State.Waiting != nil && cs.State.Waiting.Reason != "" {
 			return cs.State.Waiting.Reason
 		}
-		if cs.State.Terminated != nil {
+		if cs.State.Terminated != nil && cs.State.Terminated.Reason != "" {
 			return cs.State.Terminated.Reason
 		}
 	}
