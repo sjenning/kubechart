@@ -1,6 +1,8 @@
 # kubechart
 Bootchart for Kubernetes Pods
 
+![KubeChart](https://raw.githubusercontent.com/sjenning/kubechart/master/kubechart.png)
+
 ## Building
 
 `go build ./cmd/kubechart`
