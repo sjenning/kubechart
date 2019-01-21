@@ -5,19 +5,32 @@
 <meta http-equiv="X-UA-Compatible" content="ie=edge">
 <title>KubeChart</title>
 <script src="//unpkg.com/timelines-chart"></script>
+<script src="https://d3js.org/d3-array.v1.min.js"></script>
+<script src="https://d3js.org/d3-collection.v1.min.js"></script>
+<script src="https://d3js.org/d3-color.v1.min.js"></script>
+<script src="https://d3js.org/d3-format.v1.min.js"></script>
+<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+<script src="https://d3js.org/d3-time.v1.min.js"></script>
+<script src="https://d3js.org/d3-time-format.v2.min.js"></script>
+<script src="https://d3js.org/d3-scale.v2.min.js"></script>
 </head>
 <body>
 <div id="chart"></div>
 
 <script>
-var data = fetch('./data')
+var data = fetch('./data.json')
 	.then(response => response.json())
 	.then(data => {
 		const el = document.querySelector('#chart');
 
 		const myChart = TimelinesChart();
-		myChart.data(data).zScaleLabel('Pod Status').zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).sortAlpha().maxHeight(10000)(el);
+		var ordinalScale = d3.scaleOrdinal()
+			.domain(['CrashLoopBackOff','Error','Pending','ContainerCreating','Running','Completed','Succeeded','Deleted'])
+			.range(['#ba824d','#b65049','#ceba76','#35c5ad','#326ce5','#486889','#486889',"#ffffff"]);
+		myChart.data(data).zScaleLabel('Pod Status').zQualitative(true).enableAnimations(false).leftMargin(320).rightMargin(550).sortAlpha().maxHeight(10000).zColorScale(ordinalScale)(el);
 });
+
+
 
 
 </script>
