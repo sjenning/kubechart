@@ -36,4 +36,7 @@ python3 -m http.server
 ```
 and go to http://localhost:8000
 
+## Known Issues
+
+* Getting logs for pods with more than one container is not yet supported
 
