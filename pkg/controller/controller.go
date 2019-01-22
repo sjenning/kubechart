@@ -130,18 +130,15 @@ func (c *Controller) syncHandler(key string) error {
 	pod, err := c.podLister.Pods(namespace).Get(name)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			// pod is deleted
+			glog.Infof("pod %s is deleted", name)
+			c.eventStore.Add(namespace, name, "Deleted")
 			return nil
 		}
-
-		// pod is deleted
-		glog.Infof("pod %s is deleted", pod.GetName())
-		c.eventStore.Add(pod.GetNamespace(), pod.GetName(), "Deleted")
 	}
 
 	// pod is added or updated
-	glog.Infof("pod %s changed, phase is %s", pod.GetName(), pod.Status.Phase)
-	c.eventStore.Add(pod.GetNamespace(), pod.GetName(), getPodStatus(pod))
-
+	c.eventStore.Add(namespace, name, getPodStatus(pod))
 	return nil
 }
 
