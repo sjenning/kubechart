@@ -18,12 +18,13 @@
 <div id="chart"></div>
 
 <script>
+var loc = window.location.href;
 var data = fetch('./data.json')
 	.then(response => response.json())
 	.then(data => {
 		const el = document.querySelector('#chart');
 
-		var segmentFunc = function(segment){window.open("http://localhost:3000/logs/"+segment.group+"/"+segment.label)}
+		var segmentFunc = function(segment){window.open(loc+"logs/"+segment.group+"/"+segment.label)}
 		const myChart = TimelinesChart();
 		var ordinalScale = d3.scaleOrdinal()
 			.domain(['Pending','ContainerCreating','Running','Completed','Succeeded','Deleted', 'Error','CrashLoopBackOff','ErrImagePull','ErrImagePullBackOff', 'OOMKilled', 'Evicted'])

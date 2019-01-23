@@ -46,7 +46,7 @@ func run(c *cobra.Command, f client.Factory) error {
 		return err
 	}
 	informerFactory.Start(stopCh)
-	go ui.Run(eventStore, client)
+	go ui.Run(eventStore, client, f.Port())
 	if err = controller.Run(4, stopCh); err != nil {
 		return err
 	}
