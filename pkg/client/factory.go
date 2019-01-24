@@ -38,7 +38,7 @@ func NewFactory(baseName string) Factory {
 	}
 
 	f.flags.StringVar(&f.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use to talk to the Kubernetes apiserver. If unset, try the environment variable KUBECONFIG, as well as in-cluster configuration")
-	f.flags.Uint16Var(&f.httpPort, "httpPort", uint16(defaultHttpPort), fmt.Sprintf("Port to serve charts on.  Default %v", defaultHttpPort))
+	f.flags.Uint16Var(&f.httpPort, "http-port", uint16(defaultHttpPort), fmt.Sprintf("Port to serve charts on.", defaultHttpPort))
 
 	return f
 }
