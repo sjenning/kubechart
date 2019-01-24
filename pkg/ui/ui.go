@@ -11,15 +11,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/sjenning/kubechart/pkg/event"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 func printOneLog(client kubernetes.Interface, w http.ResponseWriter, name, namespace, container string, idx, total int) error {
 	pod := client.CoreV1().Pods(namespace)
 	if total > 1 {
 		io.WriteString(w, "================================================================\n")
-		io.WriteString(w, fmt.Sprintf("Container %d/%d: %s\n", idx + 1, total, container))
+		io.WriteString(w, fmt.Sprintf("Container %d/%d: %s\n", idx+1, total, container))
 		io.WriteString(w, "================================================================\n\n")
 	}
 	req := pod.GetLogs(name, &v1.PodLogOptions{Container: container})
@@ -30,7 +30,7 @@ func printOneLog(client kubernetes.Interface, w http.ResponseWriter, name, names
 	}
 	defer podLogs.Close()
 	_, err = io.Copy(w, podLogs)
-	if total > 1 && idx < total - 1 {
+	if total > 1 && idx < total-1 {
 		io.WriteString(w, "\n\n")
 	}
 	if err != nil {
@@ -68,5 +68,5 @@ func Run(store event.Store, client kubernetes.Interface, port uint16) {
 		}
 	})
 	glog.Infof(fmt.Sprintf("Listening on :%d", port))
-	http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	glog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 }
