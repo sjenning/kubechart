@@ -28,7 +28,7 @@ func Run(store event.Store, client kubernetes.Interface, port uint16) {
 		namespace := vars["namespace"]
 		cachedLog, ok := store.GetCachedLog(namespace, podname)
 		if ok {
-			io.WriteString(w, fmt.Sprintf("(CACHED)\n\n%s", cachedLog))
+			io.WriteString(w, cachedLog)
 		}
 		if err := log.LogPod(client, w, namespace, podname); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)

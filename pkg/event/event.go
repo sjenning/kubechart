@@ -2,6 +2,7 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -120,6 +121,9 @@ func (s *store) Add(namespace, podname, description string) {
 					s.addCacheEntry(namespace, podname, logString)
 				}
 			}
+			s.addCacheEntry(namespace, podname, fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, lastEvent.description, event.description))
+		} else {
+			s.addCacheEntry(namespace, podname, fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, "(created)", event.description))
 		}
 		nsevents[podname] = append(nsevents[podname], event)
 	} else {
