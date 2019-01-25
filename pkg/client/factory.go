@@ -10,6 +10,7 @@ import (
 
 const (
 	defaultHttpPort = 3000
+	defaultCacheSize = 100
 )
 
 // Factory knows how to create a Kubernetes client.
@@ -21,13 +22,16 @@ type Factory interface {
 	Client() (kubernetes.Interface, error)
 	// Port returns the port to listen on
 	Port() uint16
+	// CacheLogs returns whether logs of deceased pods will be cached
+	LogCacheSize() int
 }
 
 type factory struct {
-	flags      *pflag.FlagSet
-	kubeconfig string
-	baseName   string
-	httpPort   uint16
+	flags         *pflag.FlagSet
+	kubeconfig    string
+	baseName      string
+	httpPort      uint16
+	logCacheSize  int
 }
 
 // NewFactory returns a Factory.
@@ -39,6 +43,7 @@ func NewFactory(baseName string) Factory {
 
 	f.flags.StringVar(&f.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use to talk to the Kubernetes apiserver. If unset, try the environment variable KUBECONFIG, as well as in-cluster configuration")
 	f.flags.Uint16Var(&f.httpPort, "http-port", uint16(defaultHttpPort), fmt.Sprintf("Port to serve charts on.", defaultHttpPort))
+	f.flags.IntVar(&f.logCacheSize, "log-cache-size", defaultCacheSize, fmt.Sprintf("Size of log cache in MiB for deleted pods"))
 
 	return f
 }
@@ -62,4 +67,8 @@ func (f *factory) Client() (kubernetes.Interface, error) {
 
 func (f *factory) Port() uint16 {
 	return f.httpPort
+}
+
+func (f *factory) LogCacheSize() int {
+	return f.logCacheSize * 1048576
 }
