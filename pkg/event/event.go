@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,88 +19,93 @@ type event struct {
 	timestamp   time.Time
 }
 
+type cacheType int
+
+const (
+	logEntry cacheType   = iota
+	stateEntry cacheType = iota
+)
+
+type cacheInsertMode int
+
+const (
+	cacheNewEntry cacheInsertMode = iota
+	cacheAppendLog cacheInsertMode = iota
+	cacheReplaceLog cacheInsertMode = iota
+)
+
 type cacheEntry struct {
-	namespace string
-	podname string
-	bytes int
+	cachetype cacheType
+	logdata string
 }
 
 type store struct {
 	sync.Mutex
 	events map[string]map[string][]event
-	// TBD: this will consume lots o' memory
-	logCacheLimit int
 	client kubernetes.Interface
-	logCache map[string]map[string]string
-	logCacheSize int
-	logCacheEntries []cacheEntry
+	logCache map[string]map[string][]cacheEntry
+	lastLogEntry map[string]map[string]int
+	logAllEvents bool
 }
 
 type Store interface {
 	Add(namespace, podname, value string)
-	GetCachedLog(namespace, podname string) (string, bool)
+	GetLog(namespace, podname string) (string, bool)
 	JSONHandler(w http.ResponseWriter, r *http.Request)
-	addCacheEntry(namespace, podname, data string)
-	deleteCacheEntry(namespace, podname string)
+	addCacheEntry(namespace, podname, data string, logtype cacheType, insertMode cacheInsertMode)
 }
 
-func NewStore(client kubernetes.Interface, cacheLimit int) Store {
+func NewStore(client kubernetes.Interface, logAllEvents bool) Store {
 	return &store{
 		events: map[string]map[string][]event{},
-		logCacheLimit: cacheLimit,
 		client: client,
-		logCache: map[string]map[string]string{},
+		logCache: map[string]map[string][]cacheEntry{},
+		lastLogEntry: map[string]map[string]int{},
+		logAllEvents: logAllEvents,
 	}
 }
 
 // Store must be locked!
-func (s *store) deleteCacheEntry(namespace, podname string) {
+
+func (s *store) getCurrentState(namespace, podname string) (string) {
+	nsevents, ok := s.events[namespace]
+	if !ok {
+		return ""
+	}
+	podevents, ok := nsevents[podname]
+	if !ok {
+		return ""
+	}
+	return podevents[len(podevents)-1].description
+}
+
+func (s *store) addCacheEntry(namespace, podname, data string, logtype cacheType, insertMode cacheInsertMode) {
 	nscache, ok := s.logCache[namespace]
 	if !ok {
-		return
+		s.logCache[namespace] = map[string][]cacheEntry{}
+		s.lastLogEntry[namespace] = map[string]int{}
+		nscache, _ = s.logCache[namespace]
 	}
 	_, ok = nscache[podname]
 	if !ok {
-		return
+		nscache[podname] = []cacheEntry{}
+		s.lastLogEntry[namespace][podname] = -1
 	}
-	delete(nscache, podname)
-	cacheEntries := len(s.logCacheEntries)
-	for idx, cacheEntry := range s.logCacheEntries {
-		if cacheEntry.namespace == namespace && cacheEntry.podname == podname {
-			s.logCacheSize -= cacheEntry.bytes
-			if cacheEntries == 1 {
-				s.logCacheEntries = nil
-			} else if idx == 0 {
-				s.logCacheEntries = s.logCacheEntries[1:]
-			} else if idx == cacheEntries - 1 {
-				s.logCacheEntries = s.logCacheEntries[0:cacheEntries - 2]
+	if logtype == logEntry {
+		if insertMode == cacheNewEntry || s.lastLogEntry[namespace][podname] == -1 {
+			nscache[podname] = append(nscache[podname], cacheEntry{cachetype: logEntry, logdata: data})
+			s.lastLogEntry[namespace][podname] = len(nscache[podname]) - 1
+		} else {
+			if insertMode == cacheReplaceLog {
+				nscache[podname][s.lastLogEntry[namespace][podname]].logdata = data
 			} else {
-				s.logCacheEntries = append(s.logCacheEntries[0:idx - 1], s.logCacheEntries[idx + 1:cacheEntries - 1]...)
+				nscache[podname][s.lastLogEntry[namespace][podname]].logdata = nscache[podname][s.lastLogEntry[namespace][podname]].logdata + data
 			}
 		}
+	} else {
+		nscache[podname] = append(nscache[podname], cacheEntry{cachetype: stateEntry, logdata: data})
 	}
 }
-
-func (s *store) addCacheEntry(namespace, podname, data string) {
-	nscache, ok := s.logCache[namespace]
-	if !ok {
-		s.logCache[namespace] = map[string]string{}
-		nscache, _ = s.logCache[namespace]
-	}
-	odata, _ := nscache[podname]
-	nscache[podname] = odata + data
-	s.logCacheEntries = append(s.logCacheEntries, cacheEntry{
-		namespace: namespace,
-		podname: podname,
-		bytes: len(nscache[podname]),
-	})
-	s.logCacheSize += len(data)
-	for s.logCacheSize > s.logCacheLimit {
-		head := s.logCacheEntries[0]
-		s.deleteCacheEntry(head.namespace, head.podname)
-	}
-}
-
 
 func (s *store) Add(namespace, podname, description string) {
 	s.Lock()
@@ -110,36 +116,58 @@ func (s *store) Add(namespace, podname, description string) {
 		nsevents, _ = s.events[namespace]
 	}
 	podevents, ok := nsevents[podname]
-	if !ok || podevents[len(podevents)-1].description != description {
-		event := event{description, time.Now()}
-		glog.Infof("adding event for %s/%s: %#v", namespace, podname, event)
-		if ok {
-			lastEvent := podevents[len(podevents)-1]
-			if s.logCacheLimit > 0 && lastEvent.description == "Running" {
-				logString, err := log.LogPodToString(s.client, namespace, podname)
-				if len(logString) > 0 && err == nil {
-					s.addCacheEntry(namespace, podname, logString)
-				}
+	lastDescription := "(created)"
+	if ok {
+		lastDescription = podevents[len(podevents)-1].description
+	}
+	event := event{description, time.Now()}
+	glog.Infof("adding event for %s/%s: %#v", namespace, podname, event)
+	if lastDescription == "Running" {
+		logString, err := log.LogPodToString(s.client, namespace, podname)
+		if err == nil && len(logString) > 0 {
+			if event.description == "Running" {
+				s.addCacheEntry(namespace, podname, logString, logEntry, cacheAppendLog)
+			} else {
+				s.addCacheEntry(namespace, podname, logString, logEntry, cacheNewEntry)
 			}
-			s.addCacheEntry(namespace, podname, fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, lastEvent.description, event.description))
-		} else {
-			s.addCacheEntry(namespace, podname, fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, "(created)", event.description))
 		}
+	}
+	if lastDescription != description || s.logAllEvents {
+		s.addCacheEntry(namespace, podname, fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, lastDescription, event.description), stateEntry, cacheNewEntry)
 		nsevents[podname] = append(nsevents[podname], event)
-	} else {
-		glog.Infof("duplicate event dropped for %s/%s\n", namespace, podname)
+	}
+	if lastDescription != "Running" {
+		s.lastLogEntry[namespace][podname] = -1
 	}
 }
 
-func (s *store) GetCachedLog(namespace, podname string) (string, bool) {
+func (s *store) GetLog(namespace, podname string) (string, bool) {
+	s.Lock()
+	state := s.getCurrentState(namespace, podname)
+	s.Unlock()
+	data := ""
+	// Drop the lock while we retrieve data; this may be expensive.
+	// If the state changes at the wrong time, we may get duplicate log
+	// data or miss some, which is not a serious problem.
+	if state == "Running" {
+		// Don't worry about errors here; we just won't return any new date.
+		data, _ = log.LogPodToString(s.client, namespace, podname)
+	}
 	s.Lock()
 	defer s.Unlock()
+	if data != "" {
+		s.addCacheEntry(namespace, podname, data, logEntry, cacheReplaceLog)
+	}
 	nscache, ok := s.logCache[namespace]
 	if !ok {
 		return "", false
 	}
 	cache, ok := nscache[podname]
-	return cache, ok
+	var b strings.Builder
+	for _, entry := range cache {
+		b.WriteString(entry.logdata)
+	}
+	return b.String(), ok
 }
 
 type LabelData struct {

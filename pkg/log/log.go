@@ -54,6 +54,7 @@ func LogPod(client kubernetes.Interface, w io.Writer, namespace, podname string)
 					io.WriteString(w, "\n\n")
 				}
 			}
+			io.WriteString(w, "\n")
 			break
 		}
 	}

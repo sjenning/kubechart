@@ -10,7 +10,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/sjenning/kubechart/pkg/event"
-	"github.com/sjenning/kubechart/pkg/log"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -24,14 +23,9 @@ func Run(store event.Store, client kubernetes.Interface, port uint16) {
 	r.HandleFunc("/data.json", store.JSONHandler)
 	r.HandleFunc("/logs/{namespace}/{podname}", func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		podname := vars["podname"]
-		namespace := vars["namespace"]
-		cachedLog, ok := store.GetCachedLog(namespace, podname)
+		cachedLog, ok := store.GetLog(vars["namespace"], vars["podname"])
 		if ok {
 			io.WriteString(w, cachedLog)
-		}
-		if err := log.LogPod(client, w, namespace, podname); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 	glog.Infof(fmt.Sprintf("Listening on :%d", port))

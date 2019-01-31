@@ -22,8 +22,8 @@ type Factory interface {
 	Client() (kubernetes.Interface, error)
 	// Port returns the port to listen on
 	Port() uint16
-	// CacheLogs returns whether logs of deceased pods will be cached
-	LogCacheSize() int
+	// LogAllEvents returns whether we should log all events, including transitions between the same state
+	LogAllEvents() bool
 }
 
 type factory struct {
@@ -31,7 +31,7 @@ type factory struct {
 	kubeconfig    string
 	baseName      string
 	httpPort      uint16
-	logCacheSize  int
+	logAllEvents  bool
 }
 
 // NewFactory returns a Factory.
@@ -43,7 +43,7 @@ func NewFactory(baseName string) Factory {
 
 	f.flags.StringVar(&f.kubeconfig, "kubeconfig", "", "Path to the kubeconfig file to use to talk to the Kubernetes apiserver. If unset, try the environment variable KUBECONFIG, as well as in-cluster configuration")
 	f.flags.Uint16Var(&f.httpPort, "http-port", uint16(defaultHttpPort), fmt.Sprintf("Port to serve charts on.", defaultHttpPort))
-	f.flags.IntVar(&f.logCacheSize, "log-cache-size", defaultCacheSize, fmt.Sprintf("Size of log cache in MiB for deleted pods"))
+	f.flags.BoolVar(&f.logAllEvents, "log-all-events", false, fmt.Sprintf("Log all events, including same-state transitions"))
 
 	return f
 }
@@ -69,6 +69,6 @@ func (f *factory) Port() uint16 {
 	return f.httpPort
 }
 
-func (f *factory) LogCacheSize() int {
-	return f.logCacheSize * 1048576
+func (f *factory) LogAllEvents() bool {
+	return f.logAllEvents
 }
