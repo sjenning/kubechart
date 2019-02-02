@@ -132,13 +132,14 @@ func (c *Controller) syncHandler(key string) error {
 		if errors.IsNotFound(err) {
 			// pod is deleted
 			glog.Infof("pod %s is deleted", name)
-			c.eventStore.Add(namespace, name, "ImplicitDeleted")
+			c.eventStore.Add(namespace, name, "ImplicitDeleted", "")
 			return nil
 		}
 	}
 
 	// pod is added or updated
-	c.eventStore.Add(namespace, name, getPodStatus(pod))
+	reason, message := getPodStatus(pod)
+	c.eventStore.Add(namespace, name, reason, message)
 	return nil
 }
 
@@ -152,16 +153,16 @@ func (c *Controller) enqueuePod(obj interface{}) {
 	c.workqueue.AddRateLimited(key)
 }
 
-func getPodStatus(pod *v1.Pod) string {
+func getPodStatus(pod *v1.Pod) (string, string) {
 	status := pod.Status
 	containerStatuses := status.ContainerStatuses
 	for _, cs := range containerStatuses {
 		if cs.State.Waiting != nil && cs.State.Waiting.Reason != "" {
-			return cs.State.Waiting.Reason
+			return cs.State.Waiting.Reason, cs.State.Waiting.Message
 		}
 		if cs.State.Terminated != nil && cs.State.Terminated.Reason != "" {
-			return cs.State.Terminated.Reason
+			return cs.State.Terminated.Reason, cs.State.Terminated.Message
 		}
 	}
-	return string(status.Phase)
+	return string(status.Phase), ""
 }

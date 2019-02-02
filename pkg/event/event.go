@@ -49,7 +49,7 @@ type store struct {
 }
 
 type Store interface {
-	Add(namespace, podname, value string)
+	Add(namespace, podname, value, message string)
 	GetLog(namespace, podname string) (string, bool)
 	JSONHandler(w http.ResponseWriter, r *http.Request)
 	addCacheEntry(namespace, podname, data string, logtype cacheType, insertMode cacheInsertMode)
@@ -80,6 +80,9 @@ func (s *store) getCurrentState(namespace, podname string) (string) {
 }
 
 func (s *store) addCacheEntry(namespace, podname, data string, logtype cacheType, insertMode cacheInsertMode) {
+	if len(data) == 0 {
+		return
+	}
 	nscache, ok := s.logCache[namespace]
 	if !ok {
 		s.logCache[namespace] = map[string][]cacheEntry{}
@@ -92,6 +95,23 @@ func (s *store) addCacheEntry(namespace, podname, data string, logtype cacheType
 		s.lastLogEntry[namespace][podname] = -1
 	}
 	if logtype == logEntry {
+		if insertMode == cacheReplaceLog && s.lastLogEntry[namespace][podname] >= 0 {
+			odata := nscache[podname][s.lastLogEntry[namespace][podname]].logdata
+			// Don't replace data with something shorter
+			if len(odata) > len(data) {
+				insertMode = cacheNewEntry
+			} else {
+				// If the beginnings of the two entries don't match,
+				// create a new entry so we don't lose anything
+				bytesToCompare := 1024
+				if len(odata) < bytesToCompare {
+					bytesToCompare = len(odata)
+				}
+				if odata[:bytesToCompare] != data[:bytesToCompare] {
+					insertMode = cacheNewEntry
+				}
+			}
+		}
 		if insertMode == cacheNewEntry || s.lastLogEntry[namespace][podname] == -1 {
 			nscache[podname] = append(nscache[podname], cacheEntry{cachetype: logEntry, logdata: data})
 			s.lastLogEntry[namespace][podname] = len(nscache[podname]) - 1
@@ -104,10 +124,11 @@ func (s *store) addCacheEntry(namespace, podname, data string, logtype cacheType
 		}
 	} else {
 		nscache[podname] = append(nscache[podname], cacheEntry{cachetype: stateEntry, logdata: data})
+		s.lastLogEntry[namespace][podname] = len(nscache[podname]) - 1
 	}
 }
 
-func (s *store) Add(namespace, podname, description string) {
+func (s *store) Add(namespace, podname, description, message string) {
 	s.Lock()
 	defer s.Unlock()
 	nsevents, ok := s.events[namespace]
@@ -126,14 +147,18 @@ func (s *store) Add(namespace, podname, description string) {
 		logString, err := log.LogPodToString(s.client, namespace, podname)
 		if err == nil && len(logString) > 0 {
 			if event.description == "Running" {
-				s.addCacheEntry(namespace, podname, logString, logEntry, cacheAppendLog)
+				s.addCacheEntry(namespace, podname, logString, logEntry, cacheReplaceLog)
 			} else {
 				s.addCacheEntry(namespace, podname, logString, logEntry, cacheNewEntry)
 			}
 		}
 	}
 	if lastDescription != description || s.logAllEvents {
-		s.addCacheEntry(namespace, podname, fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, lastDescription, event.description), stateEntry, cacheNewEntry)
+		entry := fmt.Sprintf(">>> %v %s -> %s\n", event.timestamp, lastDescription, event.description)
+		if message != "" {
+			entry = fmt.Sprintf("%s\nMessage:\n%s\n\n", entry, message)
+		}
+		s.addCacheEntry(namespace, podname, entry, stateEntry, cacheNewEntry)
 		nsevents[podname] = append(nsevents[podname], event)
 	}
 	if lastDescription != "Running" {
