@@ -40,7 +40,7 @@ func run(c *cobra.Command, f client.Factory) error {
 	}
 	informerFactory := informers.NewSharedInformerFactory(client, time.Second*30)
 	podInformer := informerFactory.Core().V1().Pods()
-	eventStore := event.NewStore()
+	eventStore := event.NewStore(client, f.LogAllEvents())
 	controller := controller.New(client, podInformer, eventStore)
 	if err != nil {
 		return err
