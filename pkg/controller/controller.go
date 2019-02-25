@@ -132,7 +132,7 @@ func (c *Controller) syncHandler(key string) error {
 		if errors.IsNotFound(err) {
 			// pod is deleted
 			glog.Infof("pod %s is deleted", name)
-			c.eventStore.Add(namespace, name, "ImplicitDeleted", "")
+			c.eventStore.Add(namespace, name, "Deleted", "")
 			return nil
 		}
 	}
