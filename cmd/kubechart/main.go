@@ -4,14 +4,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
+	"k8s.io/klog/v2"
 
 	"github.com/sjenning/kubechart/pkg/cmd"
 	"github.com/sjenning/kubechart/pkg/cmd/kubechart"
 )
 
 func main() {
-	defer glog.Flush()
+	defer klog.Flush()
 
 	baseName := filepath.Base(os.Args[0])
 

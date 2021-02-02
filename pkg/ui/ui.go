@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/sjenning/kubechart/pkg/event"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 func Run(store event.Store, client kubernetes.Interface, port uint16) {
@@ -28,6 +28,6 @@ func Run(store event.Store, client kubernetes.Interface, port uint16) {
 			io.WriteString(w, cachedLog)
 		}
 	})
-	glog.Infof(fmt.Sprintf("Listening on :%d", port))
-	glog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
+	klog.Infof(fmt.Sprintf("Listening on :%d", port))
+	klog.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), r))
 }

@@ -27,8 +27,8 @@ var data = fetch('./data.json')
 		var segmentFunc = function(segment){window.open(loc+"logs/"+segment.group+"/"+segment.label)}
 		const myChart = TimelinesChart();
 		var ordinalScale = d3.scaleOrdinal()
-			.domain(['Pending','ContainerCreating','Running','Completed','Succeeded','Deleted', 'Error','CrashLoopBackOff','ErrImagePull','ImagePullBackOff', 'OOMKilled', 'Evicted'])
-			.range(['#ceba76','#35c5ad','#326ce5','#486889','#486889',"#ffffff", '#b65049','#ba824d','#b65049','#ba824d','#ba824d','#ba824d']);
+			.domain(['Pending','PodInitializing','ContainerCreating','Running','Completed','Succeeded','Deleted', 'Error','CrashLoopBackOff','ErrImagePull','ImagePullBackOff', 'OOMKilled', 'Evicted','CreateContainerConfigError'])
+			.range(['#ceba76','#35c5ad','#35c5ad','#326ce5','#486889','#486889',"#ffffff", '#b65049','#ba824d','#b65049','#ba824d','#ba824d','#ba824d','#ba824d']);
 		myChart.
 			data(data).
 			zQualitative(true).

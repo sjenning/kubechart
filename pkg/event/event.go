@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/sjenning/kubechart/pkg/log"
+	"k8s.io/klog/v2"
 
 	"k8s.io/client-go/kubernetes"
 )
@@ -22,28 +22,28 @@ type event struct {
 type cacheType int
 
 const (
-	logEntry cacheType   = iota
+	logEntry   cacheType = iota
 	stateEntry cacheType = iota
 )
 
 type cacheInsertMode int
 
 const (
-	cacheNewEntry cacheInsertMode = iota
-	cacheAppendLog cacheInsertMode = iota
+	cacheNewEntry   cacheInsertMode = iota
+	cacheAppendLog  cacheInsertMode = iota
 	cacheReplaceLog cacheInsertMode = iota
 )
 
 type cacheEntry struct {
 	cachetype cacheType
-	logdata string
+	logdata   string
 }
 
 type store struct {
 	sync.Mutex
-	events map[string]map[string][]event
-	client kubernetes.Interface
-	logCache map[string]map[string][]cacheEntry
+	events       map[string]map[string][]event
+	client       kubernetes.Interface
+	logCache     map[string]map[string][]cacheEntry
 	lastLogEntry map[string]map[string]int
 	logAllEvents bool
 }
@@ -57,9 +57,9 @@ type Store interface {
 
 func NewStore(client kubernetes.Interface, logAllEvents bool) Store {
 	return &store{
-		events: map[string]map[string][]event{},
-		client: client,
-		logCache: map[string]map[string][]cacheEntry{},
+		events:       map[string]map[string][]event{},
+		client:       client,
+		logCache:     map[string]map[string][]cacheEntry{},
 		lastLogEntry: map[string]map[string]int{},
 		logAllEvents: logAllEvents,
 	}
@@ -67,7 +67,7 @@ func NewStore(client kubernetes.Interface, logAllEvents bool) Store {
 
 // Store must be locked!
 
-func (s *store) getCurrentState(namespace, podname string) (string) {
+func (s *store) getCurrentState(namespace, podname string) string {
 	nsevents, ok := s.events[namespace]
 	if !ok {
 		return ""
@@ -142,7 +142,7 @@ func (s *store) Add(namespace, podname, description, message string) {
 		lastDescription = podevents[len(podevents)-1].description
 	}
 	event := event{description, time.Now()}
-	glog.Infof("adding event for %s/%s: %#v", namespace, podname, event)
+	klog.Infof("adding event for %s/%s: %#v", namespace, podname, event)
 	if lastDescription == "Running" {
 		logString, err := log.LogPodToString(s.client, namespace, podname)
 		if err == nil && len(logString) > 0 {

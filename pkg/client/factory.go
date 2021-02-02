@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultHttpPort = 3000
+	defaultHttpPort  = 3000
 	defaultCacheSize = 100
 )
 
@@ -27,11 +27,11 @@ type Factory interface {
 }
 
 type factory struct {
-	flags         *pflag.FlagSet
-	kubeconfig    string
-	baseName      string
-	httpPort      uint16
-	logAllEvents  bool
+	flags        *pflag.FlagSet
+	kubeconfig   string
+	baseName     string
+	httpPort     uint16
+	logAllEvents bool
 }
 
 // NewFactory returns a Factory.
